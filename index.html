@@ -226,6 +226,8 @@
 
                     for(let i = 0; i < pages[num-1].length; i++)
                         $('.threads').append(appendThread(pages[num-1][i]));
+
+                    hljs.highlightAll();
                 });
 
                 if(pages.length)
@@ -233,6 +235,7 @@
                         $('.threads').append(appendThread(pages[0][i]));
 
                 hljs.highlightAll();
+                
                 $('.search__count').html(`found ${ pages.reduce(function(count, row) { return count + row.length; }, 0) } threads ${ $("#search__input").val().length ? `with keyword <span class="fw-bold">${ $("#search__input").val() }</span>` : '' }`);
             }
 
