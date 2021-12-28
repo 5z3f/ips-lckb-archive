@@ -169,7 +169,7 @@
                     .then(zip => 
                     {
                         $('.info__title').text(`unpacking`);
-                        $('.info__desc').text(`...`);
+                        $('.info__desc').html(`<div class="spinner-border text-dark" role="status"><span class="sr-only"></span></div>`);
 
                         var filesLength = Object.keys(zip.files).length,
                             i = 0,
