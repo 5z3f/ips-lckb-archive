@@ -118,7 +118,7 @@
         </style>
         <script>
             window.onload = () => {
-                $('.info__title').removeClass('placeholder').text('obtaining threads: data.zip');
+                $('.info__title').removeClass('placeholder').text('downloading: data.zip');
                 $('.info__desc').removeClass('placeholder').text('...');
 
                 var btn = $('.btn__gotop');
@@ -161,14 +161,7 @@
             async function obtainThreads(callback)
             {
                 await fetch('./data.zip')
-                    .then(r => {
-                        return r.blob();
-                    })
-                    .then(blob => new JSZip().loadAsync(blob))
-					.then(zip => {
-                        $('.info__desc').text(`received`);
-                        return zip;
-                    })
+                    .then(r => new JSZip().loadAsync(r.blob()))
                     .then(zip => 
                     {
                         $('.info__title').text(`unpacking`);
