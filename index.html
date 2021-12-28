@@ -1,0 +1,386 @@
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="color-scheme" content="light dark">
+        
+        <title>LCKB Thread Backup</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap-nightshade.min.css" rel="stylesheet">
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+		<script src="./js/jszip.js"></script>
+        <script src="./js/jquery.bootpag.js"></script>
+
+        <style>
+            img {
+                max-width:100%;
+                max-height:100%;
+            }
+            
+            .btn__gotop {
+                display: inline-block;
+                background-color: #2d2d2d;
+                width: 50px;
+                height: 50px;
+                text-align: center;
+                border-radius: 4px;
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                transition: background-color .3s, opacity .5s, visibility .5s;
+                opacity: 0;
+                visibility: hidden;
+                z-index: 1000;
+            }
+
+            .btn__gotop:hover {
+                cursor: pointer;
+                background-color: #333;
+            }
+
+            .btn__gotop:active {
+                background-color: #555;
+            }
+
+            .btn__gotop.show {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            blockquote {
+                box-shadow: 0 .5rem 1rem rgba(17,17,17,.15) !important;
+                background-color: #00000029;
+                margin-bottom: 15px;
+                padding: 16px !important;
+                position: relative;
+                clear: both;
+                border: 4px solid rgba(57, 55, 55, 0.15);
+            }
+
+            .thread__title, .info, .filters, .ipsCode {
+                font-family: monospace
+            }
+
+            .info {
+                transition: background-color 0.5s linear;
+            }
+
+            .ipsCode {
+                background: #00000040;
+                padding: 15px !important;
+                clear: both;
+                direction: ltr;
+                word-wrap: normal;
+                border-left: 5px solid rgba(255, 255, 255, 0.15) !important;
+                margin: 15px;
+                border-radius: 5px;
+
+                overflow-y: scroll;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none;  /* Internet Explorer 10+ */
+            }
+
+            .ipsCode::-webkit-scrollbar { /* WebKit */
+                width: 0;
+                height: 0;
+            }
+
+            html.dark .page-link {
+                color: #ffffff57;
+                border: 1px solid #ffffff21;
+                background-color: transparent;
+                padding: .75rem 1.5rem;
+                font-size: 1.25rem;
+            }
+
+            html.dark .page-item.active .page-link {
+                color: #fafafa;
+                background-color: #1f345b36;
+                border-color: #264566;
+            }
+
+            html.dark .page-link:hover {
+                color: #e5e9ee;
+                background-color: #1e1d1d;
+                border-color: #515151;
+            }
+        </style>
+        <script>
+            window.onload = () => {
+                $('.info__title').removeClass('placeholder').text('obtaining threads: data.zip');
+                $('.info__desc').removeClass('placeholder').text('...');
+
+                var btn = $('.btn__gotop');
+
+                $(window).scroll(function() {
+                    if ($(window).scrollTop() > 300)    btn.addClass('show');
+                    else                                btn.removeClass('show');
+                });
+
+                btn.on('click', function(e) {
+                    e.preventDefault();
+                    $('html, body').animate({ scrollTop: 0 }, '300');
+                });
+            };
+
+            function strip_tags(_html)
+            {
+                var _tags = [],
+                    _tag = "" ;
+
+                for(var _a = 1; _a < arguments.length; _a++)
+                {
+                    _tag = arguments[_a].replace( /<|>/g, '' ).trim();
+
+                    if (arguments[_a].length > 0)
+                        _tags.push(_tag, "/" + _tag);
+                }
+
+                if(!(typeof _html == "string") && !(_html instanceof String))
+                    return "";
+                else if(_tags.length == 0)
+                    return _html.replace(/<(\s*\/?)[^>]+>/g, "");
+                else
+                {
+                    var _re = new RegExp("<(?!("+_tags.join("|")+")\s*\/?)[^>]+>", "g");
+                    return _html.replace(_re, '');
+                }
+            }
+
+            async function obtainThreads(callback)
+            {
+                await fetch('./data.zip')
+                    .then(r => {
+                        $('.info__desc').text(`received`);
+                        return r.blob();
+                    })
+                    .then(blob => new JSZip().loadAsync(blob))
+                    .then(zip => 
+                    {
+                        $('.info__title').text(`unpacking`);
+                        $('.info__desc').text(`...`);
+
+                        var filesLength = Object.keys(zip.files).length,
+                            i = 0,
+                            lastPercent = 0,
+                            fileArray = [];
+                        
+                        for(let file in zip.files)
+                        {
+                            zip.files[file].async("string")
+                                .then((data) => 
+                                {
+                                    i++;
+                                    
+                                    var currentPercent = Math.round(i / filesLength * 100);
+                                
+                                    if(currentPercent != lastPercent)
+                                    {
+                                        lastPercent = currentPercent;
+                                        $('.info__desc').text(`${ lastPercent }% (${ file })`);
+                                    }
+                                    
+                                    fileArray.push(JSON.parse(data));
+                                
+                                    if(i == filesLength)
+                                        callback(fileArray)
+                                });
+                        }
+                    })
+            }
+
+            function paginate(data, size)
+            {
+                $('.threads').empty();
+
+                $('#pagination-here').empty();
+                $('#pagination-here').unbind('page');
+
+                var pages = data.reduce((acc, val, i) => {
+                    let idx = Math.floor(i / size)
+                    let page = acc[idx] || (acc[idx] = [])
+                    page.push(val)
+
+                    return acc
+                }, [])
+
+                $('#pagination-here').bootpag({
+                    total: pages.length,
+                    page: 1,
+                    maxVisible: pages.length > 10 ? 10 : pages.length,
+                    leaps: true
+                }).on("page", function(event, num)
+                {
+                    $('.threads').empty();
+
+                    for(let i = 0; i < pages[num-1].length; i++)
+                        $('.threads').append(appendThread(pages[num-1][i]));
+                });
+
+                if(pages.length)
+                    for(let i = 0; i < pages[0].length; i++)
+                        $('.threads').append(appendThread(pages[0][i]));
+
+                $('.search__count').html(`found ${ pages.reduce(function(count, row) { return count + row.length; }, 0) } threads ${ $("#search__input").val().length ? `with keyword <span class="fw-bold">${ $("#search__input").val() }</span>` : '' }`);
+            }
+
+            var threadData = [];
+        
+            obtainThreads(async(data) => 
+            {
+                threadData = data;
+                paginate(threadData, 10);
+
+                $('.search__bar').removeClass('d-none');
+                $('.filters').removeClass('d-none');
+
+                $('.info').css({ 'background-color': 'rgba(36, 191, 97, 0.12)' });
+
+                $('.info__title')
+                    .empty()
+                    .html('<img src="data:image/png;base64,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">');
+                
+                $('.info__desc').remove();
+
+                $('.filter').on('click', function()
+                {
+                    console.log(this);
+                    $("#search__input").val($(this).text().trim());
+                })
+
+                var timeout = null;
+                $('#search__input').on('keyup', function()
+                {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(filter, 800);
+                });
+            })
+
+            function filter()
+            {               
+                var value = $("#search__input").val();
+                var data = [];
+
+                if(value.includes('comment:'))
+                    data = threadData.filter(x => x['commentData'].some(y => y['comment'].includes(value.split('comment:')[1])));
+                else if(value.includes('user:'))
+                    data = threadData.filter(x => x['commentData'].some(y => y['author']['name'].includes(value.split('user:')[1])));
+                else if(value.includes('title:'))
+                    data = threadData.filter(x => x['meta']['threadName'].includes(value.split('title:')[1]));
+                else
+                    data = threadData.filter(x => x['meta']['threadName'].includes(value) || x['commentData'].some(y => y['comment'].includes(value)));
+
+                paginate(data, 10);
+            }
+
+            function appendThread(data)
+            {
+                var positionArray = [];
+
+                for(let i = 0; i < data['meta']['position'].length; i++)
+                    positionArray.push(`<span class="fw-bold">${ data['meta']['position'][i]['item']['name'] }</span>`);
+
+                var posts = [];
+
+                for(let i = 0; i < data['commentData'].length; i++)
+                {
+                    if(i == 0)
+                        continue;
+
+                    posts.push(
+                        `
+                            <div class="thread__post p-3 d-flex flex-column rounded-3 shadow" style="background-color: #ffffff0a;">
+                                <div class="post__meta d-flex justify-content-between">
+                                    <div class="post__author d-flex gap-3 col-12">
+                                        <div class="avatar text-center" style="background-color: #ffffff1a;border-radius: 10%; width: 50px;">
+                                            <h4 class="my-1">${ data['commentData'][i]['author']['name'][0].toLowerCase() }</h4>
+                                        </div>
+                                        <small class="col-11">by <span class="fw-bold">${ data['commentData'][i]['author']['name'] }</span>, <br/> ${ new Date(data['commentData'][i]['timestamp'] * 1000).toUTCString() }</small>
+                                    </div>
+                                </div>
+                                <hr style="height: 2px"/>
+                                <div class="post__data">
+                                    ${ strip_tags(data['commentData'][i]['comment']
+                                        .replaceAll("<<", "%3C%3C")
+                                        .replaceAll(">>", "%3E%3E"), "a", "i", "u", "b", "p", "span", "time", "strong").replace('ipsType_reset ipsType_medium ipsType_light', 'text-light')
+                                        .replaceAll("%3C%3C", "<<")
+                                        .replaceAll("%3E%3E", ">>")
+                                    }
+                                </div>
+                            </div>
+                        `
+                    );
+                }
+
+                return `
+                            <div class="thread p-5 rounded-3 mt-3 shadow" style="background-color: #ffffff0d;">
+                                <div class="thread__meta p-5 rounded-3" style="background-color: #00000052;">
+                                    <div class="thread__title">
+                                        <h4 class="fs-3 text-light fw-bold">${ data['meta']['threadName'] } <span class="thread__id text-white-50 float-end">#${ data['meta']['threadId'] }</span></h4>
+                                    </div>
+                                    <hr style="height: 2px"/>
+                                    <div class="thread__author d-flex gap-3 mb-3">
+                                        <div class="avatar text-center" style="background-color: #ffffff1a;border-radius: 10%; width: 50px;">
+                                            <h4 class="my-1">${ data['commentData'][0]['author']['name'][0].toLowerCase() }</h4>
+                                        </div>
+                                        <small class="text-truncate">by <span class="fw-bold">${ data['commentData'][0]['author']['name'] }</span>, <br/> ${ new Date(data['commentData'][0]['timestamp'] * 1000).toUTCString() } in ${ positionArray.join(' / ') }</small>
+                                    </div>
+                                    <div class="thread__desc">
+                                        ${ strip_tags(data['commentData'][0]['comment']
+                                            .replaceAll("<<", "%3C%3C")
+                                            .replaceAll(">>", "%3E%3E"), "a", "i", "u", "b", "p", "span", "time", "strong").replace('ipsType_reset ipsType_medium ipsType_light', 'text-light')
+                                            .replaceAll("%3C%3C", "<<")
+                                            .replaceAll("%3E%3E", ">>")
+                                        }
+                                    </div>
+                                </div>
+                                <div class="thread_posts mt-3 d-flex flex-column gap-3">
+                                    <hr/>
+                                    ${ posts.join(' ') }
+                                </div>
+                            </div>
+                        `;
+            }
+
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="row">
+                <div class="col-12 mx-auto">
+                    <h2 class="mt-5 text-center fw-bold text-white-50">LCKB Thread Backup</h2>
+                    <div class="info p-3 col-7 mx-auto mt-5 d-flex flex-column rounded-3 text-center">
+                        <h3 class="info__title mx-auto placeholder col-7"></h3>
+                        <h5 class="info__desc mx-auto placeholder col-4"></h5>
+                    </div>
+                    
+                    <div class="filters mt-5 d-none">
+                        <div class="d-flex flex-row gap-2 text-white-50">
+                            <button class="btn btn-sm filter" style="background-color: #3b3b3b">user:</h6>
+                            <button class="btn btn-sm filter" style="background-color: #3b3b3b">comment:</h6>
+                            <button class="btn btn-sm filter" style="background-color: #3b3b3b">title:</h6>
+                        </div>
+                    </div>
+
+                    <div class="search__bar my-3 input-group input-group-lg d-none">
+                        <span class="input-group-text" id="addon-wrapping">
+                            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAABtElEQVRIidWUsW4TQRCGv1n7CssxNIgXIOQB7tbU0BuhIF4gDxApNCQ0KECDhUSQAi30REIB8xa7V7gEJU8QiiSFOcnSDYXXEMSZvSNp8jd3Ws0/38xoduGyS6oOx+Px9el0ug4MgJvh+BvwxRizm6bp0X8DnHMPROQd0FvgORWRtSzLPtYBmIrkH0Ly/bIsbydJspQkyZKq3gE+AVdUdS/P89VGHYSxHAA9EXmUZdnLKoP3fhN4AZwAy9ba77U6CDPvAfuLkgNYa4eqOgKuAuuxDs6O6C5AWZavYyYR2TnrqQu4AdDtdvOYqSgKH36XmwA0FjxXu92uXO8Y4BBgMpnYmClJknnMQRPACEBENmImVX0Yvp9rA4wxu8ApcC+sYqW894+Z3fDjVqv1Ngb4Y5Z5nt9X1T3AqOpIRHY6nY4DKIriVqh8EMKfWGufNwIEyKqqvme251U6Bl4BzwBU9Wm/39+uDQDw3l9jdokGwEqI+8rssXuTpumR9/7X1v0LUnvdKoqYPxlzDa21WxcGqAs5F6AO5NyAGMRUW5rJWjsEflct8uMi8v4l59y2c27hyl5O/QRS2KheSpy5ggAAAABJRU5ErkJggg==">
+                        </span>
+                        <input id="search__input" type="text" autocomplete="off" class="form-control" placeholder="Search" aria-label="Search" aria-describedby="addon-wrapping">
+                    </div>
+
+                    <div class="d-flex justify-content-center mt-5">
+                        <p id="pagination-here"></p>
+                    </div>
+
+                    <small class="search__count"></small>
+                    <div class="threads mb-5"></div>
+
+                    <!-- button class="gotop" title="Go to top">Top</button> -->
+                    <a class="btn__gotop fs-3 text-white">↑</a>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/js/darkmode.min.js"></script>
+    </body>
+</html>
