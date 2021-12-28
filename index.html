@@ -162,10 +162,13 @@
             {
                 await fetch('./data.zip')
                     .then(r => {
-                        $('.info__desc').text(`received`);
                         return r.blob();
                     })
                     .then(blob => new JSZip().loadAsync(blob))
+					.then(zip => {
+                        $('.info__desc').text(`received`);
+                        return zip;
+                    })
                     .then(zip => 
                     {
                         $('.info__title').text(`unpacking`);
@@ -277,13 +280,13 @@
                 var data = [];
 
                 if(value.includes('comment:'))
-                    data = threadData.filter(x => x['commentData'].some(y => y['comment'].includes(value.split('comment:')[1])));
+                    data = threadData.filter(x => x['commentData'].some(y => y['comment'].toLowerCase().includes(value.split('comment:')[1].toLowerCase())));
                 else if(value.includes('user:'))
-                    data = threadData.filter(x => x['commentData'].some(y => y['author']['name'].includes(value.split('user:')[1])));
+                    data = threadData.filter(x => x['commentData'].some(y => y['author']['name'].toLowerCase().includes(value.split('user:')[1].toLowerCase())));
                 else if(value.includes('title:'))
-                    data = threadData.filter(x => x['meta']['threadName'].includes(value.split('title:')[1]));
+                    data = threadData.filter(x => x['meta']['threadName'].toLowerCase().includes(value.split('title:')[1]));
                 else
-                    data = threadData.filter(x => x['meta']['threadName'].includes(value) || x['commentData'].some(y => y['comment'].includes(value)));
+                    data = threadData.filter(x => x['meta']['threadName'].toLowerCase().includes(value) || x['commentData'].some(y => y['comment'].toLowerCase().includes(value)));
 
                 paginate(data, 10);
             }
