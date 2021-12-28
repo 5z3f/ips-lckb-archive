@@ -1,6 +1,9 @@
 # ips-lckb-archive
 LCKB Thread Archive
 
+### Live Version
+https://5z3f.github.io/ips-lckb-archive/
+
 ### Last Update | 29.12.2020
 Gathered 3691 Threads, I had no access to 744 threads, 10562 out of 14999 ids was not valid and 3 threads returned 403 Forbidden.
 
