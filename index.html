@@ -149,7 +149,7 @@
 
             async function obtainThreads(callback)
             {
-                await fetch('./data.zip')
+                await fetch('https://github.com/5z3f/ips-lckb-archive/raw/master/data/data.zip')
                     .then(r => {
                         $('.info__desc').text(`received`);
                         return r.blob();
