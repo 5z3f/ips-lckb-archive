@@ -289,13 +289,13 @@
 
             function filter()
             {               
-                var value = $("#search__input").val();
+                var value = $("#search__input").val().toLowerCase();
                 var data = [];
 
                 if(value.includes('comment:'))
-                    data = threadData.filter(x => x['commentData'].some(y => y['comment'].toLowerCase().includes(value.split('comment:')[1].toLowerCase())));
+                    data = threadData.filter(x => x['commentData'].some(y => y['comment'].toLowerCase().includes(value.split('comment:')[1])));
                 else if(value.includes('user:'))
-                    data = threadData.filter(x => x['commentData'].some(y => y['author']['name'].toLowerCase().includes(value.split('user:')[1].toLowerCase())));
+                    data = threadData.filter(x => x['commentData'].some(y => y['author']['name'].toLowerCase().includes(value.split('user:')[1])));
                 else if(value.includes('title:'))
                     data = threadData.filter(x => x['meta']['threadName'].toLowerCase().includes(value.split('title:')[1]));
                 else
